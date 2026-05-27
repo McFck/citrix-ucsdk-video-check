@@ -46,10 +46,6 @@ function initCitrixSdk() {
     }
   }
 
-  if (typeof sdk.onConnectionChange === "function") {
-    sdk.onConnectionChange(true);
-    log("CitrixWebRTC.onConnectionChange(true) called");
-  }
 }
 
 function getCitrixUserMedia(constraints) {

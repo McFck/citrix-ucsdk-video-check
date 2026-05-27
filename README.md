@@ -6,7 +6,7 @@ It does only three things:
 
 1. Loads `@citrix/ucsdk` from files bundled with this app.
 2. Starts a normal browser camera preview.
-3. Starts a second camera preview through `CitrixWebRTC.initUCSDK`, `CitrixWebRTC.onConnectionChange(true)`, `CitrixWebRTC.mapVideoElement`, and `CitrixWebRTC.getUserMedia`.
+3. Starts a second camera preview through `CitrixWebRTC.initUCSDK`, `CitrixWebRTC.mapVideoElement`, and `CitrixWebRTC.getUserMedia`.
 
 Expected result: both video boxes show moving video. The second box is the one that exercises the Citrix optimized endpoint/client rendering path.
 
