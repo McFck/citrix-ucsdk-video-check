@@ -15,6 +15,10 @@ function checkUcSdk() {
   const bootstrap = window.CitrixBootstrap;
   const webRtc = window.CitrixWebRTC;
 
+  for (const status of window.sdkScriptStatus || []) {
+    log(status);
+  }
+
   log(`CitrixBootstrap: ${bootstrap ? "loaded" : "missing"}`);
   log(`CitrixWebRTC: ${webRtc ? "loaded" : "missing"}`);
 

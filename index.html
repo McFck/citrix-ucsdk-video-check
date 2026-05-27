@@ -33,8 +33,14 @@
       <pre id="log"></pre>
     </main>
 
-    <script src="./vendor/CitrixBootstrap.js"></script>
-    <script src="./vendor/CitrixWebRTC.js"></script>
+    <script>
+      window.sdkScriptStatus = [];
+      window.noteSdkScript = function (name, status) {
+        window.sdkScriptStatus.push(name + ": " + status);
+      };
+    </script>
+    <script src="./CitrixBootstrap.js" onload="noteSdkScript('CitrixBootstrap.js','loaded')" onerror="noteSdkScript('CitrixBootstrap.js','failed')"></script>
+    <script src="./CitrixWebRTC.js" onload="noteSdkScript('CitrixWebRTC.js','loaded')" onerror="noteSdkScript('CitrixWebRTC.js','failed')"></script>
     <script src="./app.js"></script>
   </body>
 </html>
