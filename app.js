@@ -3,8 +3,7 @@ const remoteVideo = document.querySelector("#remoteVideo");
 const logBox = document.querySelector("#log");
 
 let localStream;
-let pc1;
-let pc2;
+let citrixStream;
 
 function log(message) {
   const line = `[${new Date().toLocaleTimeString()}] ${message}`;
@@ -26,37 +25,40 @@ function checkUcSdk() {
     log(`CitrixBootstrap exports: ${Object.keys(bootstrap).join(", ") || "(none)"}`);
   }
   if (webRtc) {
-    log(`CitrixWebRTC exports: ${Object.keys(webRtc).join(", ") || "(none)"}`);
+    log(`CitrixWebRTC API: ${Object.getOwnPropertyNames(webRtc).join(", ") || "(none)"}`);
   }
 }
 
-async function probeCitrixBridge() {
-  return new Promise((resolve) => {
-    let socket;
-    const bridgeUrl = "wss://127.0.0.1:9002/bootstrap";
-    const timer = setTimeout(() => {
-      if (socket) socket.close();
-      log(`Citrix bridge ${bridgeUrl} probe timed out`);
-      resolve();
-    }, 2500);
+function initCitrixSdk() {
+  const sdk = window.CitrixWebRTC;
+  if (!sdk) {
+    throw new Error("CitrixWebRTC is not loaded");
+  }
 
-    try {
-      socket = new WebSocket(bridgeUrl);
-      socket.onopen = () => {
-        clearTimeout(timer);
-        log(`Citrix bridge ${bridgeUrl} is reachable`);
-        socket.close();
-        resolve();
-      };
-      socket.onerror = () => {
-        clearTimeout(timer);
-        log(`Citrix bridge ${bridgeUrl} is not reachable or blocked`);
-        resolve();
-      };
-    } catch (error) {
-      clearTimeout(timer);
-      log(`Citrix bridge probe failed: ${error.message}`);
-      resolve();
+  try {
+    sdk.initUCSDK("citrix-ucsdk-video-check");
+    log("CitrixWebRTC.initUCSDK completed");
+  } catch (error) {
+    if (String(error.message || error).includes("already initialized")) {
+      log("CitrixWebRTC already initialized");
+    } else {
+      throw error;
+    }
+  }
+
+  if (typeof sdk.onConnectionChange === "function") {
+    sdk.onConnectionChange(true);
+    log("CitrixWebRTC.onConnectionChange(true) called");
+  }
+}
+
+function getCitrixUserMedia(constraints) {
+  return new Promise((resolve, reject) => {
+    const sdk = window.CitrixWebRTC;
+    const returned = sdk.getUserMedia(constraints, resolve, reject);
+
+    if (returned && typeof returned.then === "function") {
+      returned.then(resolve, reject);
     }
   });
 }
@@ -66,10 +68,10 @@ async function start() {
   log("starting check");
 
   checkUcSdk();
-  await probeCitrixBridge();
+  initCitrixSdk();
 
   localStream = await navigator.mediaDevices.getUserMedia({
-    audio: true,
+    audio: false,
     video: {
       width: { ideal: 1280 },
       height: { ideal: 720 },
@@ -78,49 +80,35 @@ async function start() {
   });
 
   localVideo.srcObject = localStream;
-  log("camera stream attached to own camera feed");
+  log("native browser camera attached");
 
-  pc1 = new RTCPeerConnection();
-  pc2 = new RTCPeerConnection();
+  window.CitrixWebRTC.mapVideoElement(remoteVideo);
+  log("Citrix SDK mapped second video element for optimized overlay rendering");
 
-  pc1.onicecandidate = (event) => {
-    if (event.candidate) pc2.addIceCandidate(event.candidate);
-  };
+  citrixStream = await getCitrixUserMedia({
+    audio: false,
+    video: {
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      frameRate: { ideal: 30 }
+    }
+  });
 
-  pc2.onicecandidate = (event) => {
-    if (event.candidate) pc1.addIceCandidate(event.candidate);
-  };
-
-  pc2.ontrack = (event) => {
-    remoteVideo.srcObject = event.streams[0];
-    log("loopback remote feed received track");
-  };
-
-  for (const track of localStream.getTracks()) {
-    pc1.addTrack(track, localStream);
-  }
-
-  const offer = await pc1.createOffer();
-  await pc1.setLocalDescription(offer);
-  await pc2.setRemoteDescription(offer);
-  const answer = await pc2.createAnswer();
-  await pc2.setLocalDescription(answer);
-  await pc1.setRemoteDescription(answer);
-
-  log("WebRTC loopback connected");
-  log("Expected result: both video boxes should show moving video.");
+  remoteVideo.srcObject = citrixStream;
+  log("Citrix SDK camera stream attached to second video");
+  log("Expected result: second box is rendered by the Citrix optimized endpoint/client path.");
 }
 
 async function stop() {
-  if (pc1) pc1.close();
-  if (pc2) pc2.close();
-  pc1 = null;
-  pc2 = null;
-
   if (localStream) {
     for (const track of localStream.getTracks()) track.stop();
   }
   localStream = null;
+
+  if (citrixStream && typeof citrixStream.getTracks === "function") {
+    for (const track of citrixStream.getTracks()) track.stop();
+  }
+  citrixStream = null;
 
   localVideo.srcObject = null;
   remoteVideo.srcObject = null;
