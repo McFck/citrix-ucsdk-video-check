@@ -12,14 +12,16 @@ Expected result: both video boxes show moving video. If Citrix HDX optimization 
 
 ## Run
 
-Open `index.html` from a secure context, or serve the folder:
+Install dependencies, build the static site, then serve `dist`:
 
 ```bash
-python -m http.server 4173 --bind 127.0.0.1
+npm install
+npm run build
+python -m http.server 4173 --bind 127.0.0.1 --directory dist
 ```
 
 Then open `http://127.0.0.1:4173`.
 
 ## Publish
 
-Push this repo to GitHub. The included GitHub Actions workflow publishes the root folder to GitHub Pages from `main`.
+Push this repo to GitHub. The included GitHub Actions workflow runs `npm ci`, copies the installed `@citrix/ucsdk` browser files into `dist/vendor`, and publishes `dist` to GitHub Pages from `main`.

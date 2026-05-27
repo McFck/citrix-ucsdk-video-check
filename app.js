@@ -1,9 +1,3 @@
-const sdkUrls = [
-  "https://cdn.jsdelivr.net/npm/@citrix/ucsdk@4.0.2/+esm",
-  "https://esm.sh/@citrix/ucsdk@4.0.2",
-  "https://unpkg.com/@citrix/ucsdk@4.0.2?module"
-];
-
 const localVideo = document.querySelector("#localVideo");
 const remoteVideo = document.querySelector("#remoteVideo");
 const logBox = document.querySelector("#log");
@@ -17,18 +11,19 @@ function log(message) {
   logBox.textContent += `${line}\n`;
 }
 
-async function loadUcSdk() {
-  for (const url of sdkUrls) {
-    try {
-      log(`loading @citrix/ucsdk from ${url}`);
-      const sdk = await import(url);
-      log(`@citrix/ucsdk loaded. exports: ${Object.keys(sdk).join(", ") || "(none)"}`);
-      return sdk;
-    } catch (error) {
-      log(`@citrix/ucsdk load failed from ${url}: ${error.message}`);
-    }
+function checkUcSdk() {
+  const bootstrap = window.CitrixBootstrap;
+  const webRtc = window.CitrixWebRTC;
+
+  log(`CitrixBootstrap: ${bootstrap ? "loaded" : "missing"}`);
+  log(`CitrixWebRTC: ${webRtc ? "loaded" : "missing"}`);
+
+  if (bootstrap) {
+    log(`CitrixBootstrap exports: ${Object.keys(bootstrap).join(", ") || "(none)"}`);
   }
-  return null;
+  if (webRtc) {
+    log(`CitrixWebRTC exports: ${Object.keys(webRtc).join(", ") || "(none)"}`);
+  }
 }
 
 async function probeCitrixBridge() {
@@ -65,7 +60,7 @@ async function start() {
   await stop();
   log("starting check");
 
-  await loadUcSdk();
+  checkUcSdk();
   await probeCitrixBridge();
 
   localStream = await navigator.mediaDevices.getUserMedia({
