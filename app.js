@@ -33,23 +33,24 @@ function checkUcSdk() {
 async function probeCitrixBridge() {
   return new Promise((resolve) => {
     let socket;
+    const bridgeUrl = "wss://127.0.0.1:9002/bootstrap";
     const timer = setTimeout(() => {
       if (socket) socket.close();
-      log("Citrix bridge ws://127.0.0.1:9002 probe timed out");
+      log(`Citrix bridge ${bridgeUrl} probe timed out`);
       resolve();
     }, 2500);
 
     try {
-      socket = new WebSocket("ws://127.0.0.1:9002");
+      socket = new WebSocket(bridgeUrl);
       socket.onopen = () => {
         clearTimeout(timer);
-        log("Citrix bridge ws://127.0.0.1:9002 is reachable");
+        log(`Citrix bridge ${bridgeUrl} is reachable`);
         socket.close();
         resolve();
       };
       socket.onerror = () => {
         clearTimeout(timer);
-        log("Citrix bridge ws://127.0.0.1:9002 is not reachable or blocked");
+        log(`Citrix bridge ${bridgeUrl} is not reachable or blocked`);
         resolve();
       };
     } catch (error) {
